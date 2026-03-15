@@ -1,0 +1,76 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+
+// 1. Credentials
+const char* ssid = "*****";
+const char* password = "*****";
+const char* apiKey = "****";
+void setup() 
+{
+  Serial.begin(9600);
+  
+  // Connect to WiFi
+  WiFi.mode(WIFI_STA); 
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) 
+  {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nWiFi Connected!");
+
+  // Run the test request
+  askGroq("what is the api value for ktm today");
+}
+
+void loop() 
+{
+  // Keep empty for this test
+}
+
+void askGroq(String prompt) {
+  if (WiFi.status() == WL_CONNECTED) 
+  {
+    HTTPClient http;
+
+    // 2. Setup the Endpoint
+    http.begin("https://api.groq.com/openai/v1/chat/completions");
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("Authorization", "Bearer " + String(apiKey));
+
+    // 3. Create the JSON Body (Plural "messages")
+    StaticJsonDocument<512> doc;
+    doc["model"] = "llama-3.3-70b-versatile";
+    
+    JsonArray messages = doc.createNestedArray("messages");
+    JsonObject msg1 = messages.createNestedObject();
+    msg1["role"] = "user";
+    msg1["content"] = prompt;
+
+    String requestBody;
+    serializeJson(doc, requestBody);
+
+    // 4. Send POST request
+    int httpResponseCode = http.POST(requestBody);
+
+    if (httpResponseCode > 0) {
+      String response = http.getString();
+      
+      // 5. Parse the Response
+      StaticJsonDocument<1024> filter;
+      filter["choices"][0]["message"]["content"] = true;
+      
+      StaticJsonDocument<1024> output;
+      deserializeJson(output, response);
+      
+      const char* aiResponse = output["choices"][0]["message"]["content"];
+      Serial.println("--- Groq Response ---");
+      Serial.println(aiResponse);
+    } else {
+      Serial.print("Error on HTTP request: ");
+      Serial.println(httpResponseCode);
+    }
+    http.end();
+  }
+}
