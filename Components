@@ -1,4 +1,8 @@
 In this section I will mention, what components i will be using.
 1. ESP-32
 2. MAX98357A - Audio amplifier
-3. 
+3. INMP441 - Microphone
+4. 4ohm speaker
+5. potentiometer
+6. charging module
+7. battery
